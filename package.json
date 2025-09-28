@@ -1,0 +1,23 @@
+{
+  "name": "popup-maker-release-tester",
+  "version": "1.0.0",
+  "description": "🧪 Minimal test plugin for validating Popup Maker release workflows",
+  "private": true,
+  "scripts": {
+    "build": "echo 'No build process needed for test plugin'",
+    "build:production": "echo 'No production build needed for test plugin'"
+  },
+  "keywords": [
+    "wordpress",
+    "plugin",
+    "popup-maker",
+    "testing",
+    "release-automation"
+  ],
+  "author": "Code Atlantic LLC",
+  "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PopupMaker/release-tester.git"
+  }
+}

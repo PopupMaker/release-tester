@@ -1,0 +1,301 @@
+name: 🧪 Test Release Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # ============================================================================
+  # BUILD TEST PLUGIN PACKAGE
+  # ============================================================================
+  build:
+    name: Build Test Plugin Package
+    runs-on: ubuntu-latest
+    outputs:
+      plugin_slug: ${{ steps.info.outputs.slug }}
+      plugin_name: ${{ steps.info.outputs.name }}
+      plugin_version: ${{ steps.info.outputs.version }}
+      package_name: ${{ steps.package.outputs.name }}
+      changelog_content: ${{ steps.changelog.outputs.content }}
+
+    steps:
+      - name: Checkout Test Plugin source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Extract plugin information
+        id: info
+        run: |
+          # Extract tag version without 'v' prefix
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+
+          # Test plugin specific values
+          PLUGIN_SLUG="popup-maker-release-tester"
+          PLUGIN_FILE="popup-maker-release-tester.php"
+
+          PLUGIN_NAME=$(grep "Plugin Name:" "$PLUGIN_FILE" | head -1 | sed 's/.*Plugin Name:\s*\([^*]*\).*/\1/' | xargs)
+
+          echo "slug=${PLUGIN_SLUG}" >> $GITHUB_OUTPUT
+          echo "name=${PLUGIN_NAME}" >> $GITHUB_OUTPUT
+          echo "version=${TAG_VERSION}" >> $GITHUB_OUTPUT
+
+          echo "🧪 TEST Plugin: ${PLUGIN_NAME} (${PLUGIN_SLUG})"
+          echo "🏷️ Version: ${TAG_VERSION}"
+          echo "🔖 Tag: ${GITHUB_REF_NAME}"
+
+      - name: Extract changelog content
+        id: changelog
+        run: |
+          VERSION="${{ steps.info.outputs.version }}"
+
+          echo "🔍 Extracting changelog for test version: ${VERSION}"
+
+          # Simple changelog extraction for test plugin
+          CHANGELOG_CONTENT="## 🧪 Test Release ${VERSION}
+
+This is a test release for validating:
+- ✅ Release workflow automation
+- 📦 Package creation and distribution
+- 🔗 EDD webhook integration
+- 📢 Slack notification delivery
+
+**⚠️ This is a test plugin - not for production use.**"
+
+          # Save to output (handle multiline content)
+          {
+            echo 'content<<EOF'
+            echo "$CHANGELOG_CONTENT"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Create test release package
+        id: package
+        run: |
+          PLUGIN_SLUG="${{ steps.info.outputs.slug }}"
+          PLUGIN_VERSION="${{ steps.info.outputs.version }}"
+          PACKAGE_NAME="${PLUGIN_SLUG}_v${PLUGIN_VERSION}.zip"
+
+          echo "📦 Creating test package: $PACKAGE_NAME"
+
+          # Create ZIP package excluding development files
+          zip -r "$PACKAGE_NAME" . \
+            -x "*.git*" \
+            -x "*.github*" \
+            -x "node_modules/*" \
+            -x "*.DS_Store*" \
+            -x "*.log" \
+            -x "*.md"
+
+          # Verify package was created
+          if [ -f "$PACKAGE_NAME" ]; then
+            FILE_SIZE=$(ls -lh "$PACKAGE_NAME" | awk '{print $5}')
+            sha256sum "$PACKAGE_NAME" > "${PACKAGE_NAME}.sha256"
+
+            echo "✅ Test package created: $PACKAGE_NAME ($FILE_SIZE)"
+            echo "name=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Failed to create test package"
+            exit 1
+          fi
+
+      - name: Upload test package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.info.outputs.slug }}-${{ steps.info.outputs.version }}
+          path: |
+            ${{ steps.package.outputs.name }}
+            ${{ steps.package.outputs.name }}.sha256
+          retention-days: 30
+
+  # ============================================================================
+  # CREATE GITHUB RELEASE
+  # ============================================================================
+  github-release:
+    name: Create GitHub Test Release
+    runs-on: ubuntu-latest
+    needs: build
+    outputs:
+      release_url: ${{ steps.release.outputs.html_url }}
+      upload_url: ${{ steps.release.outputs.upload_url }}
+
+    steps:
+      - name: Download test package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.plugin_slug }}-${{ needs.build.outputs.plugin_version }}
+
+      - name: Create GitHub Test Release
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: 🧪 ${{ needs.build.outputs.plugin_name }} ${{ github.ref_name }}
+          body: |
+            # 🧪 ${{ needs.build.outputs.plugin_name }} ${{ github.ref_name }}
+
+            ${{ needs.build.outputs.changelog_content }}
+
+            ## 📦 Test Installation
+
+            1. Download the plugin ZIP file below
+            2. Upload to WordPress via Plugins → Add New → Upload Plugin
+            3. Activate the plugin (admin notice will confirm test mode)
+
+            **⚠️ WARNING: This is a test plugin for development workflow validation only.**
+
+            ---
+
+            **Package**: `${{ needs.build.outputs.package_name }}`
+            **Generated**: ${{ github.sha }}
+          files: |
+            ${{ needs.build.outputs.package_name }}
+            ${{ needs.build.outputs.package_name }}.sha256
+          draft: false
+          prerelease: true
+          generate_release_notes: false
+
+  # ============================================================================
+  # TEST EDD WEBHOOK
+  # ============================================================================
+  edd-webhook:
+    name: Test EDD Webhook
+    runs-on: ubuntu-latest
+    needs: [build, github-release]
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      needs.github-release.result == 'success'
+
+    steps:
+      - name: Send test EDD webhook
+        env:
+          EDD_WEBHOOK_URL: ${{ secrets.EDD_WEBHOOK_URL }}
+          EDD_WEBHOOK_TOKEN: ${{ secrets.EDD_WEBHOOK_TOKEN }}
+        run: |
+          PLUGIN_SLUG="${{ needs.build.outputs.plugin_slug }}"
+          PLUGIN_VERSION="${{ needs.build.outputs.plugin_version }}"
+          RELEASE_URL="${{ needs.github-release.outputs.release_url }}"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ needs.build.outputs.package_name }}"
+
+          echo "🧪 Sending TEST webhook to EDD Store..."
+          echo "Plugin: $PLUGIN_SLUG"
+          echo "Version: $PLUGIN_VERSION"
+          echo "Release URL: $RELEASE_URL"
+          echo "Download URL: $DOWNLOAD_URL"
+
+          if [ -z "$EDD_WEBHOOK_URL" ]; then
+            echo "⚠️ EDD_WEBHOOK_URL secret not configured - test skipped"
+            exit 0
+          fi
+
+          # Send test webhook payload with TEST markers
+          curl -X POST "$EDD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $EDD_WEBHOOK_TOKEN" \
+            -d '{
+              "plugin": "'$PLUGIN_SLUG'",
+              "version": "'$PLUGIN_VERSION'",
+              "release_url": "'$RELEASE_URL'",
+              "download_url": "'$DOWNLOAD_URL'",
+              "github_tag": "${{ github.ref_name }}",
+              "repository": "${{ github.repository }}",
+              "package_name": "${{ needs.build.outputs.package_name }}",
+              "sha": "${{ github.sha }}",
+              "test_mode": true,
+              "test_timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }' \
+            --fail --silent --show-error
+
+          echo "✅ Test EDD webhook sent successfully"
+
+  # ============================================================================
+  # TEST SLACK NOTIFICATION
+  # ============================================================================
+  slack-notification:
+    name: Test Slack Notification
+    runs-on: ubuntu-latest
+    needs: [build, github-release, edd-webhook]
+    if: always() && needs.build.result == 'success'
+
+    steps:
+      - name: Send test Slack notification
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          PLUGIN_NAME="${{ needs.build.outputs.plugin_name }}"
+          PLUGIN_VERSION="${{ needs.build.outputs.plugin_version }}"
+          RELEASE_URL="${{ needs.github-release.outputs.release_url }}"
+
+          # Build status indicators
+          GITHUB_STATUS="${{ needs.github-release.result == 'success' && '✅ Created' || '❌ Failed' }}"
+          EDD_STATUS="${{ needs.edd-webhook.result == 'success' && '✅ Synced' || needs.edd-webhook.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}"
+
+          TITLE="🧪 TEST RELEASE: ${PLUGIN_NAME} ${{ github.ref_name }}"
+
+          # Build message text
+          MESSAGE="*🧪 Test Release Summary for ${PLUGIN_NAME}*\n"
+          MESSAGE="${MESSAGE}• *Version:* ${{ github.ref_name }} (${PLUGIN_VERSION})\n"
+          MESSAGE="${MESSAGE}• *GitHub Release:* ${GITHUB_STATUS}\n"
+          MESSAGE="${MESSAGE}• *EDD Test Webhook:* ${EDD_STATUS}\n\n"
+          MESSAGE="${MESSAGE}📦 <${RELEASE_URL}|Download Test Release>\n"
+          MESSAGE="${MESSAGE}⚠️ *This is a test release for workflow validation*\n\n"
+          MESSAGE="${MESSAGE}#testing #release-automation #popup-maker"
+
+          echo "🧪 Sending test Slack notification..."
+          echo "Title: $TITLE"
+
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "⚠️ SLACK_WEBHOOK_URL secret not configured - test skipped"
+            exit 0
+          fi
+
+          # Send to Slack with test indicators
+          curl -X POST \
+            --data-urlencode "payload={\"text\": \"${TITLE}\\n\\n${MESSAGE}\", \"username\": \"Test Release Bot\", \"icon_emoji\": \":test_tube:\"}" \
+            "$SLACK_WEBHOOK_URL" \
+            --fail --silent --show-error
+
+          echo "✅ Test Slack notification sent successfully"
+
+  # ============================================================================
+  # TEST SUMMARY
+  # ============================================================================
+  summary:
+    name: Generate Test Summary
+    runs-on: ubuntu-latest
+    needs: [build, github-release, edd-webhook, slack-notification]
+    if: always()
+
+    steps:
+      - name: Generate test summary
+        run: |
+          PLUGIN_NAME="${{ needs.build.outputs.plugin_name }}"
+          VERSION="${{ github.ref_name }}"
+
+          echo "# 🧪 Test Release Summary: ${PLUGIN_NAME} ${VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "**Purpose:** Release workflow and integration testing" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          [ "${{ needs.build.result }}" == "success" ] && echo "✅ **Package Creation**: Test package built successfully" >> $GITHUB_STEP_SUMMARY || echo "❌ **Package Creation**: Failed" >> $GITHUB_STEP_SUMMARY
+          [ "${{ needs.github-release.result }}" == "success" ] && echo "✅ **GitHub Release**: Test release created" >> $GITHUB_STEP_SUMMARY || echo "❌ **GitHub Release**: Failed" >> $GITHUB_STEP_SUMMARY
+          [ "${{ needs.edd-webhook.result }}" == "success" ] && echo "✅ **EDD Webhook**: Test webhook delivered" >> $GITHUB_STEP_SUMMARY || echo "❌ **EDD Webhook**: Failed or skipped" >> $GITHUB_STEP_SUMMARY
+          [ "${{ needs.slack-notification.result }}" == "success" ] && echo "✅ **Slack Notification**: Test notification sent" >> $GITHUB_STEP_SUMMARY || echo "❌ **Slack Notification**: Failed or skipped" >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Test Package Information" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**File:** \`${{ needs.build.outputs.package_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Download:** [GitHub Test Release](${{ needs.github-release.outputs.release_url }})" >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*🧪 Test Release Generated by GitHub Actions*" >> $GITHUB_STEP_SUMMARY
