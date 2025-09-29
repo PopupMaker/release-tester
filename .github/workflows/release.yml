@@ -61,7 +61,7 @@ This is a test release for validating:
 - 🔗 EDD webhook integration
 - 📢 Slack notification delivery
 
-**⚠️ This is a test plugin - not for production use.**"
+⚠️ This is a test plugin - not for production use."
 
           # Save to output (handle multiline content)
           {
