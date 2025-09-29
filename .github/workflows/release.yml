@@ -50,23 +50,20 @@ jobs:
         run: |
           VERSION="${{ steps.info.outputs.version }}"
 
-          echo "🔍 Extracting changelog for test version: ${VERSION}"
+          echo "Extracting changelog for test version: ${VERSION}"
 
           # Simple changelog extraction for test plugin
-          CHANGELOG_CONTENT="Test Release ${VERSION}
-
-This is a test release for validating:
-- Release workflow automation
-- Package creation and distribution
-- EDD webhook integration
-- Slack notification delivery
-
-WARNING: This is a test plugin - not for production use."
-
-          # Save to output (handle multiline content)
           {
             echo 'content<<EOF'
-            echo "$CHANGELOG_CONTENT"
+            echo "Test Release ${VERSION}"
+            echo ""
+            echo "This is a test release for validating:"
+            echo "- Release workflow automation"
+            echo "- Package creation and distribution"
+            echo "- EDD webhook integration"
+            echo "- Slack notification delivery"
+            echo ""
+            echo "WARNING: This is a test plugin - not for production use."
             echo 'EOF'
           } >> $GITHUB_OUTPUT
 
