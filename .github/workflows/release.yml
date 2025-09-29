@@ -53,15 +53,15 @@ jobs:
           echo "🔍 Extracting changelog for test version: ${VERSION}"
 
           # Simple changelog extraction for test plugin
-          CHANGELOG_CONTENT="## 🧪 Test Release ${VERSION}
+          CHANGELOG_CONTENT="Test Release ${VERSION}
 
 This is a test release for validating:
-- ✅ Release workflow automation
-- 📦 Package creation and distribution
-- 🔗 EDD webhook integration
-- 📢 Slack notification delivery
+- Release workflow automation
+- Package creation and distribution
+- EDD webhook integration
+- Slack notification delivery
 
-⚠️ This is a test plugin - not for production use."
+WARNING: This is a test plugin - not for production use."
 
           # Save to output (handle multiline content)
           {
