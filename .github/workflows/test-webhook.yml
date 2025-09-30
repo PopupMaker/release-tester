@@ -1,0 +1,97 @@
+name: 🧪 Test EDD Webhook
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to test (e.g., 1.0.10)'
+        required: true
+        default: '1.0.10'
+      release_url:
+        description: 'GitHub release URL (optional - will auto-generate)'
+        required: false
+      download_url:
+        description: 'Download ZIP URL (optional - will auto-generate)'
+        required: false
+
+jobs:
+  test-webhook:
+    name: Send Test Webhook
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send webhook to EDD
+        env:
+          EDD_WEBHOOK_URL: ${{ secrets.EDD_WEBHOOK_URL }}
+          EDD_WEBHOOK_TOKEN: ${{ secrets.EDD_WEBHOOK_TOKEN }}
+          EDD_PRODUCT_ID: ${{ secrets.EDD_PRODUCT_ID }}
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          RELEASE_URL="${{ github.event.inputs.release_url }}"
+          DOWNLOAD_URL="${{ github.event.inputs.download_url }}"
+
+          # Auto-generate URLs if not provided
+          if [ -z "$RELEASE_URL" ]; then
+            RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/v${VERSION}"
+          fi
+
+          if [ -z "$DOWNLOAD_URL" ]; then
+            DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/v${VERSION}/popup-maker-release-tester_v${VERSION}.zip"
+          fi
+
+          echo "🧪 Testing EDD Webhook"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Version: $VERSION"
+          echo "Release URL: $RELEASE_URL"
+          echo "Download URL: $DOWNLOAD_URL"
+          echo "EDD Product ID: $EDD_PRODUCT_ID"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          # Check for required secrets
+          if [ -z "$EDD_WEBHOOK_URL" ]; then
+            echo "❌ EDD_WEBHOOK_URL secret not configured"
+            exit 1
+          fi
+
+          if [ -z "$EDD_PRODUCT_ID" ]; then
+            echo "❌ EDD_PRODUCT_ID secret not configured"
+            exit 1
+          fi
+
+          # Send webhook
+          echo ""
+          echo "📡 Sending webhook..."
+
+          RESPONSE=$(curl -X POST "$EDD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $EDD_WEBHOOK_TOKEN" \
+            -d '{
+              "edd_id": '$EDD_PRODUCT_ID',
+              "plugin": "popup-maker-release-tester",
+              "version": "'$VERSION'",
+              "release_url": "'$RELEASE_URL'",
+              "download_url": "'$DOWNLOAD_URL'",
+              "github_tag": "v'$VERSION'",
+              "repository": "${{ github.repository }}",
+              "package_name": "popup-maker-release-tester_v'$VERSION'.zip",
+              "sha": "${{ github.sha }}"
+            }' \
+            -w "\n%{http_code}" \
+            -s)
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo ""
+          echo "📥 Response:"
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Body: $BODY"
+          echo ""
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Webhook sent successfully!"
+            exit 0
+          else
+            echo "❌ Webhook failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
