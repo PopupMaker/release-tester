@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- 🔄 Made GitHub Action fully reusable and generic
+- 🆔 Use `EDD_PRODUCT_ID` secret instead of hardcoded value
+- 📦 Auto-detect plugin slug/file from repository name
+- 🧪 Remove test-specific hardcoding for production use
+
+### Improved
+- Workflow can be copied to any WordPress plugin repository
+- Requires only 3 secrets: `EDD_WEBHOOK_URL`, `EDD_WEBHOOK_TOKEN`, `EDD_PRODUCT_ID`
+- Auto-generates readme URL from `release_url` (no explicit parameter needed)
+
 ## [1.0.0] - 2024-01-01
 
 ### Added
