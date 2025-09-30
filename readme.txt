@@ -4,7 +4,7 @@ Tags: testing, development, releases
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.19
+Stable tag: 1.0.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -99,3 +99,9 @@ Workflow improvements making it fully generic and reusable across all WordPress 
 = 1.0.19 =
 * Removed old ZIP files from repository
 * Clean release package without nested artifacts
+
+= 1.0.20 =
+* 💚 Added Developer Encouragement System - Random positive messages in admin!
+* Because developers need love too
+* Spreads positivity one admin notice at a time
+* 15 different encouraging messages

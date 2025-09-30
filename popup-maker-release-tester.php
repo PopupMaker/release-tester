@@ -3,7 +3,7 @@
  * Plugin Name:       Popup Maker Release Tester
  * Plugin URI:        https://github.com/PopupMaker/release-tester
  * Description:       🧪 Minimal test plugin for validating release workflows, EDD integration, and Slack notification systems. FOR TESTING ONLY.
- * Version:           1.0.19
+ * Version:           1.0.20
  * Requires PHP:      7.4
  * Requires at least: 6.4
  * Requires Plugins:  popup-maker
@@ -84,7 +84,7 @@ function pmrt_plugin_updater() {
 		PMRT_STORE_URL,
 		__FILE__,
 		array(
-			'version' => '1.0.19',
+			'version' => '1.0.20',
 			'license' => $license_key,
 			'item_id' => PMRT_ITEM_ID,
 			'author'  => 'Code Atlantic',
@@ -103,3 +103,6 @@ require_once __DIR__ . '/inc/entry--bootstrap.php';
  * Register autoloader, check prerequisites & initiate plugin.
  */
 require_once __DIR__ . '/bootstrap.php';
+// Load the encouragement system - because developers need love! 💚
+require_once __DIR__ . '/includes/class-encouragement.php';
+\PopupMaker\ReleaseTester\Encouragement::init();
