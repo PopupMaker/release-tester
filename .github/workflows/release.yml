@@ -91,7 +91,8 @@ jobs:
             -x "node_modules/*" \
             -x "*.DS_Store*" \
             -x "*.log" \
-            -x "*.md"
+            -x "*.md" \
+            -x "*.zip"
 
           # Verify package was created
           if [ -f "$PACKAGE_NAME" ]; then
