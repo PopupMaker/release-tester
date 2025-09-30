@@ -3,7 +3,7 @@
  * Plugin Name:       Popup Maker Release Tester
  * Plugin URI:        https://github.com/PopupMaker/release-tester
  * Description:       🧪 Minimal test plugin for validating release workflows, EDD integration, and Slack notification systems. FOR TESTING ONLY.
- * Version:           1.0.14
+ * Version:           1.0.15
  * Requires PHP:      7.4
  * Requires at least: 6.4
  * Requires Plugins:  popup-maker
