@@ -4,7 +4,7 @@ Tags: testing, development, releases
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.18
+Stable tag: 1.0.19
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,3 +95,7 @@ Workflow improvements making it fully generic and reusable across all WordPress 
 * Full license activation and automatic update support
 * Tests complete GitHub → EDD → Customer update workflow
 * Ready for production license verification
+
+= 1.0.19 =
+* Removed old ZIP files from repository
+* Clean release package without nested artifacts
