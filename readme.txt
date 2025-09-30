@@ -4,7 +4,7 @@ Tags: testing, development, releases
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.9
+Stable tag: 1.0.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,11 @@ This plugin exists solely for testing the EDD Release Manager's webhook integrat
 2. Plugin updates automatically when GitHub releases are published
 
 == Changelog ==
+
+= 1.0.13 =
+* Test release for EDD Release Manager v1.0.7
+* Validates Asset File dropdown fix (git_file_asset now uses filename instead of URL)
+* Ensures Git Updater UI correctly selects release asset instead of "Release Source Code"
 
 = 1.0.9 =
 * Test release validating full EDD Release Manager workflow
@@ -51,6 +56,9 @@ This plugin exists solely for testing the EDD Release Manager's webhook integrat
 * Initial release
 
 == Upgrade Notice ==
+
+= 1.0.13 =
+Testing EDD Release Manager v1.0.7 - fixes Asset File dropdown selection in Git Updater UI.
 
 = 1.0.9 =
 Full workflow validation release! Tests complete integration between GitHub Actions, EDD Release Manager, and Git Download Updater with private repository support.
