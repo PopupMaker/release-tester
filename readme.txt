@@ -4,7 +4,7 @@ Tags: testing, development, releases
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.4
+Stable tag: 1.0.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,21 @@ This plugin exists solely for testing the EDD Release Manager's webhook integrat
 
 == Changelog ==
 
+= 1.0.9 =
+* Test release validating full EDD Release Manager workflow
+* Verifies changelog extraction from readme.txt
+* Validates GitHub raw URL generation for private repos
+* Tests EDD Git Download Updater integration
+
+= 1.0.8 =
+* Fixed workflow release_url output construction
+* Added EDD_PRODUCT_ID validation and graceful failure
+
+= 1.0.7 =
+* Made GitHub Action workflow completely generic and reusable
+* Removed all test-specific language and hardcoded values
+* Auto-generates changelog from CHANGELOG.md
+
 = 1.0.4 =
 * Test release for EDD Release Manager v1.0.4 validation
 
@@ -37,8 +52,11 @@ This plugin exists solely for testing the EDD Release Manager's webhook integrat
 
 == Upgrade Notice ==
 
-= 1.0.5 =
-Testing automatic upgrade notice extraction! This notice should appear in EDD Software Licensing update responses.
+= 1.0.9 =
+Full workflow validation release! Tests complete integration between GitHub Actions, EDD Release Manager, and Git Download Updater with private repository support.
 
-= 1.0.4 =
-Test release for validating EDD Release Manager integration with Git Download Updater.
+= 1.0.8 =
+Critical workflow fixes for release URL generation and product ID validation.
+
+= 1.0.7 =
+Workflow improvements making it fully generic and reusable across all WordPress plugin repositories.
