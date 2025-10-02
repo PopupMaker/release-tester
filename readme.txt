@@ -4,7 +4,7 @@ Tags: testing, development, releases
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.20
+Stable tag: 1.0.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,25 @@ This plugin exists solely for testing the EDD Release Manager's webhook integrat
 2. Plugin updates automatically when GitHub releases are published
 
 == Changelog ==
+
+= 1.0.21 =
+### Added
+- 📝 Complete release management script system
+- 🔧 `bin/update-changelog.js` - Automatically moves unreleased changes to versioned sections
+- 🔢 `bin/update-versions.js` - Updates version numbers across all plugin files
+- 🚀 `bin/prepare-release.js` - Orchestrates complete release preparation workflow
+
+### Changed
+- 🔄 Made GitHub Action fully reusable and generic
+- 🆔 Use `EDD_PRODUCT_ID` secret instead of hardcoded value
+- 📦 Auto-detect plugin slug/file from repository name
+- 🧪 Remove test-specific hardcoding for production use
+
+### Improved
+- Workflow can be copied to any WordPress plugin repository
+- Requires only 3 secrets: `EDD_WEBHOOK_URL`, `EDD_WEBHOOK_TOKEN`, `EDD_PRODUCT_ID`
+- Auto-generates readme URL from `release_url` (no explicit parameter needed)
+- CHANGELOG.md changes automatically sync to readme.txt on release
 
 = 1.0.17 =
 * Final verification test of complete asset_api_url workflow
