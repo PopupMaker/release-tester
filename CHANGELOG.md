@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## v1.1.0-beta.2 - 2025-10-03
+
+### Fixed
+- Checkout repository before edd-release-sync action to enable changelog extraction
+
+
 ## v1.1.0-beta.1 - 2025-10-03
 
 ### Added
