@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.1.0-beta.1 - 2025-10-03
+
 ### Added
 - Beta release workflow testing with `edd-release-sync@v0.2.0`
 - Pre-release detection and EDD beta version validation

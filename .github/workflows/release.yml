@@ -125,12 +125,25 @@ jobs:
     outputs:
       release_url: ${{ steps.set_url.outputs.release_url }}
       upload_url: ${{ steps.release.outputs.upload_url }}
+      is_prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
 
     steps:
       - name: Download package artifact
         uses: actions/download-artifact@v4
         with:
           name: ${{ needs.build.outputs.plugin_slug }}-${{ needs.build.outputs.plugin_version }}
+
+      - name: Detect pre-release
+        id: prerelease
+        run: |
+          TAG="${{ github.ref_name }}"
+          if [[ "$TAG" =~ -alpha || "$TAG" =~ -beta || "$TAG" =~ -rc ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "🔖 Pre-release detected: $TAG"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "✅ Production release: $TAG"
+          fi
 
       - name: Create GitHub Release
         id: release
@@ -157,7 +170,7 @@ jobs:
             ${{ needs.build.outputs.package_name }}
             ${{ needs.build.outputs.package_name }}.sha256
           draft: false
-          prerelease: true
+          prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
           generate_release_notes: false
 
       - name: Set release URL output
@@ -201,7 +214,7 @@ jobs:
           echo "✅ Asset API URL: ${ASSET_URL}"
 
       - name: Sync release to EDD Store
-        uses: code-atlantic/edd-release-sync@v0.1.0
+        uses: code-atlantic/edd-release-sync@v0.2.0
         with:
           edd_id: ${{ secrets.EDD_PRODUCT_ID }}
           version: ${{ needs.build.outputs.plugin_version }}
@@ -211,6 +224,7 @@ jobs:
           webhook_url: ${{ secrets.EDD_WEBHOOK_URL }}
           webhook_token: ${{ secrets.EDD_WEBHOOK_TOKEN }}
           plugin_slug: ${{ needs.build.outputs.plugin_slug }}
+          is_prerelease: ${{ needs.github-release.outputs.is_prerelease }}
 
   # ============================================================================
   # SLACK NOTIFICATION
