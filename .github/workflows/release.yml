@@ -193,6 +193,9 @@ jobs:
       needs.github-release.result == 'success'
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Get release asset API URL
         id: get_asset
         env:
