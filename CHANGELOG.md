@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added
+- Beta release workflow testing with `edd-release-sync@v0.2.0`
+- Pre-release detection and EDD beta version validation
+- Changelog extraction testing from CHANGELOG.md
+
+### Changed
+- Updated workflow to use new `edd-release-sync@v0.2.0` action
+- Integrated `is_prerelease` and `changelog` parameters
+
 ## v1.0.21 - 2025-09-30
 
 ### Added
