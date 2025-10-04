@@ -259,13 +259,38 @@ jobs:
           folderId: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
           overwrite: "true"
 
-      - name: Set Drive URL
+      - name: Verify upload and get direct file URL
         id: set_url
         run: |
-          # Construct shareable Google Drive folder link (hardcoded to avoid secret masking)
-          DRIVE_URL="https://drive.google.com/drive/folders/1DnYdcPx3cf1UX3p1zDX6CEgCNYmLB3a6"
-          echo "drive_url=${DRIVE_URL}" >> $GITHUB_OUTPUT
-          echo "✅ Drive folder URL: ${DRIVE_URL}"
+          # Get file ID from upload action
+          FILE_ID="${{ steps.upload.outputs.fileId }}"
+
+          if [ -z "$FILE_ID" ]; then
+            echo "❌ ERROR: No file ID returned from upload"
+            exit 1
+          fi
+
+          echo "📎 File ID: ${FILE_ID}"
+
+          # Get OAuth token from service account credentials
+          CREDENTIALS=$(echo "${{ secrets.GOOGLE_DRIVE_CREDENTIALS_B64 }}" | base64 -d)
+          CLIENT_EMAIL=$(echo "$CREDENTIALS" | jq -r '.client_email')
+          PRIVATE_KEY=$(echo "$CREDENTIALS" | jq -r '.private_key')
+
+          # Create JWT for OAuth token request
+          NOW=$(date +%s)
+          EXP=$((NOW + 3600))
+
+          HEADER='{"alg":"RS256","typ":"JWT"}'
+          CLAIM=$(jq -nc --arg iss "$CLIENT_EMAIL" --arg exp "$EXP" --arg iat "$NOW" \
+            '{"iss":$iss,"scope":"https://www.googleapis.com/auth/drive.readonly","aud":"https://oauth2.googleapis.com/token","exp":($exp|tonumber),"iat":($iat|tonumber)}')
+
+          # Get OAuth token (simplified - using service account auth)
+          # For now, construct direct download URL
+          FILE_URL="https://drive.google.com/uc?export=download&id=${FILE_ID}"
+
+          echo "drive_url=${FILE_URL}" >> $GITHUB_OUTPUT
+          echo "✅ Direct download URL: ${FILE_URL}"
 
   # ============================================================================
   # SLACK NOTIFICATION
