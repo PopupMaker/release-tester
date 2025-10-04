@@ -63,11 +63,11 @@ jobs:
           if [ -f "CHANGELOG.md" ]; then
             # Match version with optional brackets, v-prefix, and anything after (like date)
             # Matches: "## v1.0.0 - 2024-01-01", "## [1.0.0]", "## 1.0.0"
-            CHANGELOG=$(sed -n "/^## \[*v*${VERSION}[]\) -]*/,/^## /p" CHANGELOG.md | sed '1d;$d')
+            CHANGELOG=$(sed -n "/^## \[*v*${VERSION}[]\) -]*/,/^## /p" CHANGELOG.md | sed '1d;$d' | awk 'NF {p=1} p')
 
             # If still empty, try unreleased section
             if [ -z "$CHANGELOG" ]; then
-              CHANGELOG=$(sed -n "/^## Unreleased/,/^## /p" CHANGELOG.md | sed '1d;$d')
+              CHANGELOG=$(sed -n "/^## Unreleased/,/^## /p" CHANGELOG.md | sed '1d;$d' | awk 'NF {p=1} p')
             fi
           else
             CHANGELOG="Release ${VERSION}"
