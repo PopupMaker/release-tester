@@ -257,7 +257,7 @@ jobs:
           filename: ${{ needs.build.outputs.package_name }}
           credentials: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS_B64 }}
           folderId: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
-          overwrite: "true"
+          overwrite: "false"
 
       - name: Set Drive URL
         id: set_url
