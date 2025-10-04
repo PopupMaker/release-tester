@@ -251,9 +251,9 @@ jobs:
         uses: Jumbo810/Upload_Github_Artifacts_TO_GDrive@v2.2.2
         with:
           target: ${{ needs.build.outputs.package_name }}
-          credentials: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
+          credentials: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS_B64 }}
           parent_folder_id: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
-          action_if_file_exists: update_in_place
+          override: true
 
   # ============================================================================
   # SLACK NOTIFICATION
