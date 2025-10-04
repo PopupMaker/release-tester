@@ -230,52 +230,182 @@ jobs:
           is_prerelease: ${{ needs.github-release.outputs.is_prerelease }}
 
   # ============================================================================
-  # SLACK NOTIFICATION
+  # UPLOAD TO GOOGLE DRIVE
   # ============================================================================
-  slack-notification:
-    name: Slack Notification
+  google-drive-upload:
+    name: Upload to Google Drive
     runs-on: ubuntu-latest
-    needs: [build, github-release, edd-webhook]
-    if: always() && needs.build.result == 'success'
+    needs: [build, github-release]
+    if: needs.build.result == 'success' && needs.github-release.result == 'success'
+    outputs:
+      drive_url: ${{ steps.upload.outputs.drive_url }}
 
     steps:
-      - name: Send Slack notification
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.plugin_slug }}-${{ needs.build.outputs.plugin_version }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Google Drive dependencies
+        run: |
+          pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
+
+      - name: Upload to Google Drive
+        id: upload
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
+          FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+        run: |
+          PACKAGE_NAME="${{ needs.build.outputs.package_name }}"
+          PLUGIN_NAME="${{ needs.build.outputs.plugin_name }}"
+          VERSION="${{ needs.build.outputs.plugin_version }}"
+
+          cat << 'PYTHON_SCRIPT' > upload_to_drive.py
+          import os
+          import json
+          from google.oauth2 import service_account
+          from googleapiclient.discovery import build
+          from googleapiclient.http import MediaFileUpload
+
+          # Load credentials from environment
+          creds_json = os.environ['GOOGLE_CREDENTIALS']
+          creds_dict = json.loads(creds_json)
+          credentials = service_account.Credentials.from_service_account_info(
+              creds_dict,
+              scopes=['https://www.googleapis.com/auth/drive.file']
+          )
+
+          # Build Drive service
+          service = build('drive', 'v3', credentials=credentials)
+
+          # Upload file
+          folder_id = os.environ['FOLDER_ID']
+          file_name = os.environ['FILE_NAME']
+
+          file_metadata = {
+              'name': file_name,
+              'parents': [folder_id]
+          }
+
+          media = MediaFileUpload(file_name, resumable=True)
+          file = service.files().create(
+              body=file_metadata,
+              media_body=media,
+              fields='id, webViewLink'
+          ).execute()
+
+          # Make file accessible to anyone with the link
+          service.permissions().create(
+              fileId=file['id'],
+              body={'type': 'anyone', 'role': 'reader'}
+          ).execute()
+
+          print(f"DRIVE_URL={file['webViewLink']}")
+          PYTHON_SCRIPT
+
+          export FILE_NAME="$PACKAGE_NAME"
+          python upload_to_drive.py | tee drive_output.txt
+
+          DRIVE_URL=$(grep "DRIVE_URL=" drive_output.txt | cut -d'=' -f2-)
+          echo "drive_url=${DRIVE_URL}" >> $GITHUB_OUTPUT
+          echo "✅ Uploaded to Google Drive: ${DRIVE_URL}"
+
+  # ============================================================================
+  # SLACK NOTIFICATION
+  # ============================================================================
+  slack-notification-success:
+    name: Slack Success Notification
+    runs-on: ubuntu-latest
+    needs: [build, github-release, edd-webhook, google-drive-upload]
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      needs.github-release.result == 'success' &&
+      needs.edd-webhook.result == 'success'
+
+    steps:
+      - name: Send success notification to Slack
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           PLUGIN_NAME="${{ needs.build.outputs.plugin_name }}"
-          PLUGIN_VERSION="${{ needs.build.outputs.plugin_version }}"
           RELEASE_URL="${{ needs.github-release.outputs.release_url }}"
+          DRIVE_URL="${{ needs.google-drive-upload.outputs.drive_url }}"
+          CHANGELOG="${{ needs.build.outputs.changelog_content }}"
 
-          # Build status indicators
-          GITHUB_STATUS="${{ needs.github-release.result == 'success' && '✅ Created' || '❌ Failed' }}"
-          EDD_STATUS="${{ needs.edd-webhook.result == 'success' && '✅ Synced' || needs.edd-webhook.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}"
+          TITLE="🚀 RELEASE SUCCESS: ${PLUGIN_NAME} ${{ github.ref_name }}"
 
-          TITLE="🚀 RELEASE: ${PLUGIN_NAME} ${{ github.ref_name }}"
+          MESSAGE="*Release completed successfully!*\n"
+          MESSAGE="${MESSAGE}• *Version:* ${{ github.ref_name }}\n"
+          MESSAGE="${MESSAGE}• *Status:* ✅ GitHub | ✅ EDD | ✅ Drive\n\n"
+          MESSAGE="${MESSAGE}*📋 Changelog:*\n\`\`\`${CHANGELOG}\`\`\`\n\n"
+          MESSAGE="${MESSAGE}*📦 Downloads:*\n"
+          MESSAGE="${MESSAGE}• <${RELEASE_URL}|GitHub Release>\n"
+          MESSAGE="${MESSAGE}• <${DRIVE_URL}|Google Drive>\n\n"
+          MESSAGE="${MESSAGE}#release #success #popup-maker"
 
-          # Build message text
-          MESSAGE="*Release Summary for ${PLUGIN_NAME}*\n"
-          MESSAGE="${MESSAGE}• *Version:* ${{ github.ref_name }} (${PLUGIN_VERSION})\n"
-          MESSAGE="${MESSAGE}• *GitHub Release:* ${GITHUB_STATUS}\n"
-          MESSAGE="${MESSAGE}• *EDD Webhook:* ${EDD_STATUS}\n\n"
-          MESSAGE="${MESSAGE}📦 <${RELEASE_URL}|Download Release>\n\n"
-          MESSAGE="${MESSAGE}#release #automation #popup-maker"
-
-          echo "📢 Sending Slack notification..."
-          echo "Title: $TITLE"
+          echo "📢 Sending success notification to Slack..."
 
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
             echo "⚠️ SLACK_WEBHOOK_URL secret not configured - skipped"
             exit 0
           fi
 
-          # Send to Slack
           curl -X POST \
             --data-urlencode "payload={\"text\": \"${TITLE}\\n\\n${MESSAGE}\", \"username\": \"Release Bot\", \"icon_emoji\": \":rocket:\"}" \
             "$SLACK_WEBHOOK_URL" \
             --fail --silent --show-error
 
-          echo "✅ Slack notification sent successfully"
+          echo "✅ Slack notification sent"
+
+  slack-notification-failure:
+    name: Slack Failure Notification
+    runs-on: ubuntu-latest
+    needs: [build, github-release, edd-webhook, google-drive-upload]
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      (needs.github-release.result == 'failure' || needs.edd-webhook.result == 'failure' || needs.google-drive-upload.result == 'failure')
+
+    steps:
+      - name: Send failure notification to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          PLUGIN_NAME="${{ needs.build.outputs.plugin_name }}"
+
+          GITHUB_STATUS="${{ needs.github-release.result == 'success' && '✅' || '❌' }}"
+          EDD_STATUS="${{ needs.edd-webhook.result == 'success' && '✅' || '❌' }}"
+          DRIVE_STATUS="${{ needs.google-drive-upload.result == 'success' && '✅' || '❌' }}"
+
+          TITLE="🚨 RELEASE FAILURE: ${PLUGIN_NAME} ${{ github.ref_name }}"
+
+          MESSAGE="*Release encountered errors!*\n"
+          MESSAGE="${MESSAGE}• *Version:* ${{ github.ref_name }}\n"
+          MESSAGE="${MESSAGE}• *GitHub:* ${GITHUB_STATUS}\n"
+          MESSAGE="${MESSAGE}• *EDD:* ${EDD_STATUS}\n"
+          MESSAGE="${MESSAGE}• *Drive:* ${DRIVE_STATUS}\n\n"
+          MESSAGE="${MESSAGE}🔍 Check workflow: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\n\n"
+          MESSAGE="${MESSAGE}#release #failure #popup-maker"
+
+          echo "📢 Sending failure notification to Slack..."
+
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "⚠️ SLACK_WEBHOOK_URL secret not configured - skipped"
+            exit 0
+          fi
+
+          curl -X POST \
+            --data-urlencode "payload={\"text\": \"${TITLE}\\n\\n${MESSAGE}\", \"username\": \"Release Bot\", \"icon_emoji\": \":x:\"}" \
+            "$SLACK_WEBHOOK_URL" \
+            --fail --silent --show-error
+
+          echo "✅ Slack notification sent"
 
   # ============================================================================
   # RELEASE SUMMARY
@@ -283,7 +413,7 @@ jobs:
   summary:
     name: Generate Release Summary
     runs-on: ubuntu-latest
-    needs: [build, github-release, edd-webhook, slack-notification]
+    needs: [build, github-release, edd-webhook, google-drive-upload, slack-notification-success, slack-notification-failure]
     if: always()
 
     steps:
@@ -305,7 +435,8 @@ jobs:
           [ "${{ needs.build.result }}" == "success" ] && echo "✅ **Package Creation**: Package built successfully" >> $GITHUB_STEP_SUMMARY || echo "❌ **Package Creation**: Failed" >> $GITHUB_STEP_SUMMARY
           [ "${{ needs.github-release.result }}" == "success" ] && echo "✅ **GitHub Release**: Release created" >> $GITHUB_STEP_SUMMARY || echo "❌ **GitHub Release**: Failed" >> $GITHUB_STEP_SUMMARY
           [ "${{ needs.edd-webhook.result }}" == "success" ] && echo "✅ **EDD Webhook**: Webhook delivered" >> $GITHUB_STEP_SUMMARY || echo "❌ **EDD Webhook**: Failed or skipped" >> $GITHUB_STEP_SUMMARY
-          [ "${{ needs.slack-notification.result }}" == "success" ] && echo "✅ **Slack Notification**: Notification sent" >> $GITHUB_STEP_SUMMARY || echo "❌ **Slack Notification**: Failed or skipped" >> $GITHUB_STEP_SUMMARY
+          [ "${{ needs.google-drive-upload.result }}" == "success" ] && echo "✅ **Google Drive Upload**: File uploaded" >> $GITHUB_STEP_SUMMARY || echo "❌ **Google Drive Upload**: Failed or skipped" >> $GITHUB_STEP_SUMMARY
+          [ "${{ needs.slack-notification-success.result }}" == "success" ] && echo "✅ **Slack Notification**: Success notification sent" >> $GITHUB_STEP_SUMMARY || [ "${{ needs.slack-notification-failure.result }}" == "success" ] && echo "⚠️ **Slack Notification**: Failure notification sent" >> $GITHUB_STEP_SUMMARY || echo "❌ **Slack Notification**: Failed or skipped" >> $GITHUB_STEP_SUMMARY
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📦 Package Information" >> $GITHUB_STEP_SUMMARY
