@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## v1.1.0-beta.3 - 2025-10-04
+
+### Added
+- Google Drive upload integration for release packages
+- Enhanced Slack notifications with changelog content and Google Drive download links
+- Separate success/failure Slack notification jobs for better messaging
+- Google Drive link sharing for team distribution
+
 ## v1.1.0-beta.2 - 2025-10-03
 
 ### Fixed
