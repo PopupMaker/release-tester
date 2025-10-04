@@ -262,9 +262,8 @@ jobs:
       - name: Set Drive URL
         id: set_url
         run: |
-          # Construct shareable Google Drive folder link
-          FOLDER_ID="${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}"
-          DRIVE_URL="https://drive.google.com/drive/folders/${FOLDER_ID}"
+          # Construct shareable Google Drive folder link (hardcoded to avoid secret masking)
+          DRIVE_URL="https://drive.google.com/drive/folders/1DnYdcPx3cf1UX3p1zDX6CEgCNYmLB3a6"
           echo "drive_url=${DRIVE_URL}" >> $GITHUB_OUTPUT
           echo "✅ Drive folder URL: ${DRIVE_URL}"
 
