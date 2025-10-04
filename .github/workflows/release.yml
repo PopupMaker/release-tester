@@ -61,7 +61,10 @@ jobs:
 
           # Extract changelog from CHANGELOG.md if it exists
           if [ -f "CHANGELOG.md" ]; then
-            CHANGELOG=$(sed -n "/^## \[${VERSION}\]/,/^## /p" CHANGELOG.md | sed '1d;$d')
+            # Try multiple version formats: [1.0.0], v1.0.0, 1.0.0
+            CHANGELOG=$(sed -n "/^## \[*v*${VERSION}\]/,/^## /p" CHANGELOG.md | sed '1d;$d')
+
+            # If still empty, try unreleased section
             if [ -z "$CHANGELOG" ]; then
               CHANGELOG=$(sed -n "/^## Unreleased/,/^## /p" CHANGELOG.md | sed '1d;$d')
             fi
@@ -280,16 +283,28 @@ jobs:
 
           TITLE="🚀 RELEASE SUCCESS: ${PLUGIN_NAME} ${{ github.ref_name }}"
 
-          MESSAGE="*Release completed successfully!*\n"
-          MESSAGE="${MESSAGE}• *Version:* ${{ github.ref_name }}\n"
+          MESSAGE="*Release completed successfully!*\n\n"
+          MESSAGE="${MESSAGE}• *Version:* \`${{ github.ref_name }}\`\n"
           MESSAGE="${MESSAGE}• *Status:* ✅ GitHub | ✅ EDD | ✅ Drive\n\n"
-          MESSAGE="${MESSAGE}*📋 Changelog:*\n\`\`\`${CHANGELOG}\`\`\`\n\n"
+
+          # Add changelog if available
+          if [ -n "$CHANGELOG" ]; then
+            MESSAGE="${MESSAGE}*📋 Changelog:*\n\`\`\`\n${CHANGELOG}\n\`\`\`\n\n"
+          fi
+
           MESSAGE="${MESSAGE}*📦 Downloads:*\n"
           MESSAGE="${MESSAGE}• <${RELEASE_URL}|GitHub Release>\n"
-          MESSAGE="${MESSAGE}• <${DRIVE_URL}|Google Drive>\n\n"
-          MESSAGE="${MESSAGE}#release #success #popup-maker"
+
+          # Add Drive link if available
+          if [ -n "$DRIVE_URL" ]; then
+            MESSAGE="${MESSAGE}• <${DRIVE_URL}|Google Drive>\n"
+          fi
+
+          MESSAGE="${MESSAGE}\n#release #success #popup-maker"
 
           echo "📢 Sending success notification to Slack..."
+          echo "Drive URL: ${DRIVE_URL}"
+          echo "Changelog length: ${#CHANGELOG}"
 
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
             echo "⚠️ SLACK_WEBHOOK_URL secret not configured - skipped"
