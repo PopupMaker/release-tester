@@ -61,8 +61,9 @@ jobs:
 
           # Extract changelog from CHANGELOG.md if it exists
           if [ -f "CHANGELOG.md" ]; then
-            # Try multiple version formats: [1.0.0], v1.0.0, 1.0.0
-            CHANGELOG=$(sed -n "/^## \[*v*${VERSION}\]/,/^## /p" CHANGELOG.md | sed '1d;$d')
+            # Match version with optional brackets, v-prefix, and anything after (like date)
+            # Matches: "## v1.0.0 - 2024-01-01", "## [1.0.0]", "## 1.0.0"
+            CHANGELOG=$(sed -n "/^## \[*v*${VERSION}[]\) -]*/,/^## /p" CHANGELOG.md | sed '1d;$d')
 
             # If still empty, try unreleased section
             if [ -z "$CHANGELOG" ]; then
@@ -241,7 +242,7 @@ jobs:
     needs: [build, github-release]
     if: needs.build.result == 'success' && needs.github-release.result == 'success'
     outputs:
-      drive_url: ${{ steps.upload.outputs.web_view_link }}
+      drive_url: ${{ steps.set_url.outputs.drive_url }}
 
     steps:
       - name: Download package artifact
@@ -251,12 +252,21 @@ jobs:
 
       - name: Upload to Google Drive
         id: upload
-        uses: Jumbo810/Upload_Github_Artifacts_TO_GDrive@v2.2.2
+        uses: adityak74/google-drive-upload-git-action@v0.3
         with:
-          target: ${{ needs.build.outputs.package_name }}
+          filename: ${{ needs.build.outputs.package_name }}
           credentials: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS_B64 }}
-          parent_folder_id: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
-          override: true
+          folderId: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          overwrite: "true"
+
+      - name: Set Drive URL
+        id: set_url
+        run: |
+          # Construct shareable Google Drive folder link
+          FOLDER_ID="${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}"
+          DRIVE_URL="https://drive.google.com/drive/folders/${FOLDER_ID}"
+          echo "drive_url=${DRIVE_URL}" >> $GITHUB_OUTPUT
+          echo "✅ Drive folder URL: ${DRIVE_URL}"
 
   # ============================================================================
   # SLACK NOTIFICATION
