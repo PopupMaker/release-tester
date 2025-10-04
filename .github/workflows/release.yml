@@ -258,12 +258,14 @@ jobs:
       - name: Upload to Google Drive
         id: upload
         env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
           FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
         run: |
           PACKAGE_NAME="${{ needs.build.outputs.package_name }}"
           PLUGIN_NAME="${{ needs.build.outputs.plugin_name }}"
           VERSION="${{ needs.build.outputs.plugin_version }}"
+
+          # Write credentials to file to avoid shell escaping issues
+          echo '${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}' > credentials.json
 
           cat << 'PYTHON_SCRIPT' > upload_to_drive.py
           import os
@@ -272,9 +274,10 @@ jobs:
           from googleapiclient.discovery import build
           from googleapiclient.http import MediaFileUpload
 
-          # Load credentials from environment
-          creds_json = os.environ['GOOGLE_CREDENTIALS']
-          creds_dict = json.loads(creds_json)
+          # Load credentials from file
+          with open('credentials.json', 'r') as f:
+              creds_dict = json.load(f)
+
           credentials = service_account.Credentials.from_service_account_info(
               creds_dict,
               scopes=['https://www.googleapis.com/auth/drive.file']
@@ -310,6 +313,9 @@ jobs:
 
           export FILE_NAME="$PACKAGE_NAME"
           python upload_to_drive.py | tee drive_output.txt
+
+          # Clean up credentials file
+          rm -f credentials.json
 
           DRIVE_URL=$(grep "DRIVE_URL=" drive_output.txt | cut -d'=' -f2-)
           echo "drive_url=${DRIVE_URL}" >> $GITHUB_OUTPUT
