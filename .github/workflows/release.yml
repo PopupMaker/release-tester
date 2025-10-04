@@ -238,7 +238,7 @@ jobs:
     needs: [build, github-release]
     if: needs.build.result == 'success' && needs.github-release.result == 'success'
     outputs:
-      drive_url: ${{ steps.upload.outputs.drive_url }}
+      drive_url: ${{ steps.upload.outputs.web_view_link }}
 
     steps:
       - name: Download package artifact
@@ -246,80 +246,14 @@ jobs:
         with:
           name: ${{ needs.build.outputs.plugin_slug }}-${{ needs.build.outputs.plugin_version }}
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Google Drive dependencies
-        run: |
-          pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
-
       - name: Upload to Google Drive
         id: upload
-        env:
-          FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
-        run: |
-          PACKAGE_NAME="${{ needs.build.outputs.package_name }}"
-          PLUGIN_NAME="${{ needs.build.outputs.plugin_name }}"
-          VERSION="${{ needs.build.outputs.plugin_version }}"
-
-          # Write credentials to file to avoid shell escaping issues
-          echo '${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}' > credentials.json
-
-          cat << 'PYTHON_SCRIPT' > upload_to_drive.py
-          import os
-          import json
-          from google.oauth2 import service_account
-          from googleapiclient.discovery import build
-          from googleapiclient.http import MediaFileUpload
-
-          # Load credentials from file
-          with open('credentials.json', 'r') as f:
-              creds_dict = json.load(f)
-
-          credentials = service_account.Credentials.from_service_account_info(
-              creds_dict,
-              scopes=['https://www.googleapis.com/auth/drive.file']
-          )
-
-          # Build Drive service
-          service = build('drive', 'v3', credentials=credentials)
-
-          # Upload file
-          folder_id = os.environ['FOLDER_ID']
-          file_name = os.environ['FILE_NAME']
-
-          file_metadata = {
-              'name': file_name,
-              'parents': [folder_id]
-          }
-
-          media = MediaFileUpload(file_name, resumable=True)
-          file = service.files().create(
-              body=file_metadata,
-              media_body=media,
-              fields='id, webViewLink'
-          ).execute()
-
-          # Make file accessible to anyone with the link
-          service.permissions().create(
-              fileId=file['id'],
-              body={'type': 'anyone', 'role': 'reader'}
-          ).execute()
-
-          print(f"DRIVE_URL={file['webViewLink']}")
-          PYTHON_SCRIPT
-
-          export FILE_NAME="$PACKAGE_NAME"
-          python upload_to_drive.py | tee drive_output.txt
-
-          # Clean up credentials file
-          rm -f credentials.json
-
-          DRIVE_URL=$(grep "DRIVE_URL=" drive_output.txt | cut -d'=' -f2-)
-          echo "drive_url=${DRIVE_URL}" >> $GITHUB_OUTPUT
-          echo "✅ Uploaded to Google Drive: ${DRIVE_URL}"
+        uses: Jumbo810/Upload_Github_Artifacts_TO_GDrive@v2.2.2
+        with:
+          target: ${{ needs.build.outputs.package_name }}
+          credentials: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
+          parent_folder_id: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          action_if_file_exists: update_in_place
 
   # ============================================================================
   # SLACK NOTIFICATION
