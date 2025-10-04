@@ -287,45 +287,31 @@ jobs:
         run: |
           PLUGIN_NAME="${{ needs.build.outputs.plugin_name }}"
           RELEASE_URL="${{ needs.github-release.outputs.release_url }}"
-          DRIVE_URL="${{ needs.google-drive-upload.outputs.drive_url }}"
           CHANGELOG="${{ needs.build.outputs.changelog_content }}"
+          DRIVE_URL="https://drive.google.com/drive/folders/1DnYdcPx3cf1UX3p1zDX6CEgCNYmLB3a6"
 
-          TITLE="🚀 RELEASE SUCCESS: ${PLUGIN_NAME} ${{ github.ref_name }}"
+          MESSAGE="*${PLUGIN_NAME} ${{ github.ref_name }}*\n\n"
 
-          MESSAGE="*Release completed successfully!*\n\n"
-          MESSAGE="${MESSAGE}• *Version:* \`${{ github.ref_name }}\`\n"
-          MESSAGE="${MESSAGE}• *Status:* ✅ GitHub | ✅ EDD | ✅ Drive\n\n"
-
-          # Add changelog if available
+          # Add changelog
           if [ -n "$CHANGELOG" ]; then
-            MESSAGE="${MESSAGE}*📋 Changelog:*\n\`\`\`\n${CHANGELOG}\n\`\`\`\n\n"
+            MESSAGE="${MESSAGE}\`\`\`\n${CHANGELOG}\n\`\`\`\n\n"
           fi
 
-          MESSAGE="${MESSAGE}*📦 Downloads:*\n"
-          MESSAGE="${MESSAGE}• <${RELEASE_URL}|GitHub Release>\n"
-
-          # Add Drive link if available
-          if [ -n "$DRIVE_URL" ]; then
-            MESSAGE="${MESSAGE}• <${DRIVE_URL}|Google Drive>\n"
-          fi
-
-          MESSAGE="${MESSAGE}\n#release #success #popup-maker"
-
-          echo "📢 Sending success notification to Slack..."
-          echo "Drive URL: ${DRIVE_URL}"
-          echo "Changelog length: ${#CHANGELOG}"
+          MESSAGE="${MESSAGE}*Downloads:*\n"
+          MESSAGE="${MESSAGE}• <${RELEASE_URL}|GitHub>\n"
+          MESSAGE="${MESSAGE}• <${DRIVE_URL}|Google Drive>"
 
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
-            echo "⚠️ SLACK_WEBHOOK_URL secret not configured - skipped"
+            echo "⚠️ SLACK_WEBHOOK_URL not configured"
             exit 0
           fi
 
           curl -X POST \
-            --data-urlencode "payload={\"text\": \"${TITLE}\\n\\n${MESSAGE}\", \"username\": \"Release Bot\", \"icon_emoji\": \":rocket:\"}" \
+            --data-urlencode "payload={\"text\": \"${MESSAGE}\", \"username\": \"Release Bot\", \"icon_emoji\": \":package:\"}" \
             "$SLACK_WEBHOOK_URL" \
             --fail --silent --show-error
 
-          echo "✅ Slack notification sent"
+          echo "✅ Slack sent"
 
   slack-notification-failure:
     name: Slack Failure Notification
