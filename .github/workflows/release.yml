@@ -357,7 +357,15 @@ jobs:
   summary:
     name: Generate Release Summary
     runs-on: ubuntu-latest
-    needs: [build, github-release, edd-webhook, google-drive-upload, slack-notification-success, slack-notification-failure]
+    needs:
+      [
+        build,
+        github-release,
+        edd-webhook,
+        google-drive-upload,
+        slack-notification-success,
+        slack-notification-failure,
+      ]
     if: always()
 
     steps:
