@@ -252,9 +252,11 @@ jobs:
     needs: [build, github-release]
     if: needs.build.result == 'success' && needs.github-release.result == 'success'
     outputs:
-      drive_view_url: ${{ steps.upload.outputs.web_view_link }}
-      drive_download_url: ${{ steps.upload.outputs.download_link }}
-      drive_direct_url: ${{ steps.upload.outputs.direct_link }}
+      file_id: ${{ steps.upload.outputs.file_id }}
+      web_view_link: ${{ steps.upload.outputs.web_view_link }}
+      download_link: ${{ steps.upload.outputs.download_link }}
+      updated: ${{ steps.upload.outputs.updated }}
+      skipped: ${{ steps.upload.outputs.skipped }}
 
     steps:
       - name: Download package artifact
@@ -264,14 +266,14 @@ jobs:
 
       - name: Upload to Google Drive with sharing
         id: upload
-        uses: code-atlantic/sync-release-to-google-drive@v0.2.0
+        uses: code-atlantic/sync-release-to-google-drive@v0.3.0
         with:
           filename: ${{ needs.build.outputs.package_name }}
           credentials: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS_B64 }}
           folder_id: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
           overwrite: "true"
           sharing: anyone
-          sharing_role: reader
+          link_discoverable: false  # Link-only sharing, not searchable
 
   # ============================================================================
   # SLACK NOTIFICATION
@@ -294,9 +296,9 @@ jobs:
           PLUGIN_NAME="${{ needs.build.outputs.plugin_name }}"
           RELEASE_URL="${{ needs.github-release.outputs.release_url }}"
           CHANGELOG="${{ needs.build.outputs.changelog_content }}"
-          DRIVE_VIEW_URL="${{ needs.google-drive-upload.outputs.drive_view_url }}"
-          DRIVE_DOWNLOAD_URL="${{ needs.google-drive-upload.outputs.drive_download_url }}"
-          DRIVE_DIRECT_URL="${{ needs.google-drive-upload.outputs.drive_direct_url }}"
+          DRIVE_DOWNLOAD_URL="${{ needs.google-drive-upload.outputs.download_link }}"
+          DRIVE_UPDATED="${{ needs.google-drive-upload.outputs.updated }}"
+          DRIVE_SKIPPED="${{ needs.google-drive-upload.outputs.skipped }}"
 
           MESSAGE="*${PLUGIN_NAME} ${{ github.ref_name }}*\n\n"
 
