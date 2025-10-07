@@ -259,10 +259,9 @@ jobs:
           folderId: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
           overwrite: "true"
 
-      - name: Verify upload and get direct file URL
+      - name: Set file sharing and get direct link
         id: set_url
         run: |
-          # Get file ID from upload action
           FILE_ID="${{ steps.upload.outputs.fileId }}"
 
           if [ -z "$FILE_ID" ]; then
@@ -272,25 +271,57 @@ jobs:
 
           echo "📎 File ID: ${FILE_ID}"
 
-          # Get OAuth token from service account credentials
+          # Get OAuth token from service account
           CREDENTIALS=$(echo "${{ secrets.GOOGLE_DRIVE_CREDENTIALS_B64 }}" | base64 -d)
           CLIENT_EMAIL=$(echo "$CREDENTIALS" | jq -r '.client_email')
           PRIVATE_KEY=$(echo "$CREDENTIALS" | jq -r '.private_key')
 
-          # Create JWT for OAuth token request
+          # Create JWT for OAuth
           NOW=$(date +%s)
           EXP=$((NOW + 3600))
 
           HEADER='{"alg":"RS256","typ":"JWT"}'
-          CLAIM=$(jq -nc --arg iss "$CLIENT_EMAIL" --arg exp "$EXP" --arg iat "$NOW" \
-            '{"iss":$iss,"scope":"https://www.googleapis.com/auth/drive.readonly","aud":"https://oauth2.googleapis.com/token","exp":($exp|tonumber),"iat":($iat|tonumber)}')
+          CLAIM=$(jq -nc \
+            --arg iss "$CLIENT_EMAIL" \
+            --arg scope "https://www.googleapis.com/auth/drive" \
+            --arg aud "https://oauth2.googleapis.com/token" \
+            --arg exp "$EXP" \
+            --arg iat "$NOW" \
+            '{"iss":$iss,"scope":$scope,"aud":$aud,"exp":($exp|tonumber),"iat":($iat|tonumber)}')
 
-          # Get OAuth token (simplified - using service account auth)
-          # For now, construct direct download URL
-          FILE_URL="https://drive.google.com/uc?export=download&id=${FILE_ID}"
+          # Sign JWT
+          JWT_HEADER=$(echo -n "$HEADER" | base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n')
+          JWT_CLAIM=$(echo -n "$CLAIM" | base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n')
+          JWT_SIGNATURE=$(echo -n "${JWT_HEADER}.${JWT_CLAIM}" | \
+            openssl dgst -binary -sha256 -sign <(echo "$PRIVATE_KEY") | \
+            base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n')
+          JWT="${JWT_HEADER}.${JWT_CLAIM}.${JWT_SIGNATURE}"
+
+          # Get access token
+          TOKEN_RESPONSE=$(curl -s -X POST https://oauth2.googleapis.com/token \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${JWT}")
+          ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token')
+
+          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" == "null" ]; then
+            echo "❌ Failed to get access token"
+            echo "$TOKEN_RESPONSE"
+            exit 1
+          fi
+
+          # Set file-specific sharing: anyone with link can view
+          echo "🔓 Setting file sharing permissions..."
+          PERM_RESPONSE=$(curl -s -X POST \
+            "https://www.googleapis.com/drive/v3/files/${FILE_ID}/permissions" \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"role":"reader","type":"anyone"}')
+
+          # Construct direct file link
+          FILE_URL="https://drive.google.com/file/d/${FILE_ID}/view"
 
           echo "drive_url=${FILE_URL}" >> $GITHUB_OUTPUT
-          echo "✅ Direct download URL: ${FILE_URL}"
+          echo "✅ Direct file URL: ${FILE_URL}"
 
   # ============================================================================
   # SLACK NOTIFICATION
@@ -313,7 +344,7 @@ jobs:
           PLUGIN_NAME="${{ needs.build.outputs.plugin_name }}"
           RELEASE_URL="${{ needs.github-release.outputs.release_url }}"
           CHANGELOG="${{ needs.build.outputs.changelog_content }}"
-          DRIVE_URL="https://drive.google.com/drive/folders/1DnYdcPx3cf1UX3p1zDX6CEgCNYmLB3a6"
+          DRIVE_URL="${{ needs.google-drive-upload.outputs.drive_url }}"
 
           MESSAGE="*${PLUGIN_NAME} ${{ github.ref_name }}*\n\n"
 
@@ -323,7 +354,7 @@ jobs:
           fi
 
           MESSAGE="${MESSAGE}*Downloads:*\n"
-          MESSAGE="${MESSAGE}• <${RELEASE_URL}|GitHub>\n"
+          MESSAGE="${MESSAGE}��� <${RELEASE_URL}|GitHub>\n"
           MESSAGE="${MESSAGE}• <${DRIVE_URL}|Google Drive>"
 
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
