@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## v1.0.27 - 2025-10-07
+
+### Changed
+- 🧪 Test release for workflow validation
+
+
 ## v1.0.26 - 2025-10-07
 
 ### Changed
