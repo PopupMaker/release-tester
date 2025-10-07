@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## v1.0.26 - 2025-10-07
+
+### Fixed
+- **Version Consistency**: Fixed inconsistent version numbers across plugin files
+- **Release Workflow**: Updated to use enhanced Google Drive sync action v0.2.0
+- **Slack Notifications**: Enhanced with multiple download URL options
+
 ## v1.0.25 - 2025-10-07
 
 ### Changed

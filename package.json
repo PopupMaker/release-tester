@@ -1,6 +1,6 @@
 {
   "name": "popup-maker-release-tester",
-  "version": "1.0.0",
+  "version": "1.0.26",
   "description": "🧪 Minimal test plugin for validating Popup Maker release workflows",
   "private": true,
   "scripts": {
