@@ -93,10 +93,20 @@ jobs:
             -x "*.git*" \
             -x "*.github*" \
             -x "node_modules/*" \
+            -x "bin/*" \
             -x "*.DS_Store*" \
             -x "*.log" \
             -x "*.md" \
-            -x "*.zip"
+            -x "*.zip" \
+            -x "package.json" \
+            -x "package-lock.json" \
+            -x ".gitignore" \
+            -x ".editorconfig" \
+            -x ".phpcs.xml*" \
+            -x "composer.json" \
+            -x "composer.lock" \
+            -x "phpunit.xml*" \
+            -x "tests/*"
 
           # Verify package was created
           if [ -f "$PACKAGE_NAME" ]; then
@@ -297,9 +307,7 @@ jobs:
 
           MESSAGE="${MESSAGE}*Downloads:*\n"
           MESSAGE="${MESSAGE}🔗 <${RELEASE_URL}|GitHub Release>\n"
-          MESSAGE="${MESSAGE}📁 <${DRIVE_VIEW_URL}|Google Drive (View)>\n"
           MESSAGE="${MESSAGE}⬇️ <${DRIVE_DOWNLOAD_URL}|Google Drive (Download)>\n"
-          MESSAGE="${MESSAGE}🚀 <${DRIVE_DIRECT_URL}|Google Drive (Direct)>"
 
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
             echo "⚠️ SLACK_WEBHOOK_URL not configured"
