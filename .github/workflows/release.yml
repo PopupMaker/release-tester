@@ -242,7 +242,9 @@ jobs:
     needs: [build, github-release]
     if: needs.build.result == 'success' && needs.github-release.result == 'success'
     outputs:
-      drive_url: ${{ steps.upload.outputs.web_view_link }}
+      drive_view_url: ${{ steps.upload.outputs.web_view_link }}
+      drive_download_url: ${{ steps.upload.outputs.download_link }}
+      drive_direct_url: ${{ steps.upload.outputs.direct_link }}
 
     steps:
       - name: Download package artifact
@@ -252,7 +254,7 @@ jobs:
 
       - name: Upload to Google Drive with sharing
         id: upload
-        uses: code-atlantic/sync-release-to-google-drive@v0.1.1
+        uses: code-atlantic/sync-release-to-google-drive@v0.2.0
         with:
           filename: ${{ needs.build.outputs.package_name }}
           credentials: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS_B64 }}
@@ -282,7 +284,9 @@ jobs:
           PLUGIN_NAME="${{ needs.build.outputs.plugin_name }}"
           RELEASE_URL="${{ needs.github-release.outputs.release_url }}"
           CHANGELOG="${{ needs.build.outputs.changelog_content }}"
-          DRIVE_URL="${{ needs.google-drive-upload.outputs.drive_url }}"
+          DRIVE_VIEW_URL="${{ needs.google-drive-upload.outputs.drive_view_url }}"
+          DRIVE_DOWNLOAD_URL="${{ needs.google-drive-upload.outputs.drive_download_url }}"
+          DRIVE_DIRECT_URL="${{ needs.google-drive-upload.outputs.drive_direct_url }}"
 
           MESSAGE="*${PLUGIN_NAME} ${{ github.ref_name }}*\n\n"
 
@@ -292,8 +296,10 @@ jobs:
           fi
 
           MESSAGE="${MESSAGE}*Downloads:*\n"
-          MESSAGE="${MESSAGE}��� <${RELEASE_URL}|GitHub>\n"
-          MESSAGE="${MESSAGE}• <${DRIVE_URL}|Google Drive>"
+          MESSAGE="${MESSAGE}🔗 <${RELEASE_URL}|GitHub Release>\n"
+          MESSAGE="${MESSAGE}📁 <${DRIVE_VIEW_URL}|Google Drive (View)>\n"
+          MESSAGE="${MESSAGE}⬇️ <${DRIVE_DOWNLOAD_URL}|Google Drive (Download)>\n"
+          MESSAGE="${MESSAGE}🚀 <${DRIVE_DIRECT_URL}|Google Drive (Direct)>"
 
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
             echo "⚠️ SLACK_WEBHOOK_URL not configured"
