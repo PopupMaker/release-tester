@@ -307,7 +307,7 @@ jobs:
 
           MESSAGE="${MESSAGE}*Downloads:*\n"
           MESSAGE="${MESSAGE}🔗 <${RELEASE_URL}|GitHub Release>\n"
-          MESSAGE="${MESSAGE}⬇️ <${DRIVE_DOWNLOAD_URL}|Google Drive (Download)>\n"
+          MESSAGE="${MESSAGE}⬇️ <${DRIVE_DOWNLOAD_URL}|Download Release Zip (shareable link))>\n"
 
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
             echo "⚠️ SLACK_WEBHOOK_URL not configured"
