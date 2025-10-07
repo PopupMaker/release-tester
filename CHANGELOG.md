@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## v1.0.24 - 2025-10-07
+
+### Changed
+- **Google Drive Upload**: Updated to use the latest `code-atlantic/sync-release-to-google-drive@v1` action.
+
+### Fixed
+- **Google Drive Upload**: Fixed google drive action to set permissions for the file and generate a direct link to the file.
+
+
 ## v1.0.23 - 2025-10-07
 
 ### Changed
