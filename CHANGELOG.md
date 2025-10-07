@@ -4,6 +4,12 @@
 
 ## v1.0.26 - 2025-10-07
 
+### Changed
+- 🧪 Test release for workflow validation
+
+
+## v1.0.26 - 2025-10-07
+
 ### Fixed
 - **Version Consistency**: Fixed inconsistent version numbers across plugin files
 - **Release Workflow**: Updated to use enhanced Google Drive sync action v0.2.0
