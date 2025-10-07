@@ -96,7 +96,7 @@ function getCurrentVersion() {
 	}
 	
 	const content = fs.readFileSync(pluginFile, 'utf8');
-	const versionMatch = content.match(/Version:\s*([\d.-]+(?:alpha|beta|rc)?[\d]*)/);
+	const versionMatch = content.match(/Version:\s*(\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)[\d]*)?)/);
 	
 	if (!versionMatch) {
 		error('Could not find version in plugin file');
@@ -109,6 +109,11 @@ function getCurrentVersion() {
 // Calculate next version
 function getNextVersion(current, type = 'patch', customVersion = null) {
 	if (customVersion) {
+		// Validate custom version format
+		if (!/^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\d*)?$/.test(customVersion)) {
+			error(`Invalid custom version format: ${customVersion}. Use semantic versioning (e.g., 1.0.26)`);
+			process.exit(1);
+		}
 		return customVersion;
 	}
 	
@@ -116,8 +121,8 @@ function getNextVersion(current, type = 'patch', customVersion = null) {
 	const cleanVersion = current.replace(/-(?:alpha|beta|rc).*$/, '');
 	const parts = cleanVersion.split('.').map(Number);
 	
-	if (parts.length !== 3) {
-		error(`Invalid version format: ${current}`);
+	if (parts.length !== 3 || parts.some(isNaN)) {
+		error(`Invalid version format: ${current}. Expected semantic versioning (major.minor.patch)`);
 		process.exit(1);
 	}
 	
