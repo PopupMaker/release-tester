@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## v1.0.23 - 2025-10-07
+
+### Changed
+- **Google Drive Upload**: Updated to use the new `code-atlantic/sync-release-to-google-drive@v0.1.0` action.
+
+
 ## v1.0.22 - 2025-10-07
 
 ### Changed
