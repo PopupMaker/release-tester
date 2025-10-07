@@ -242,7 +242,7 @@ jobs:
     needs: [build, github-release]
     if: needs.build.result == 'success' && needs.github-release.result == 'success'
     outputs:
-      drive_url: ${{ steps.set_url.outputs.drive_url }}
+      drive_url: ${{ steps.upload.outputs.web_view_link }}
 
     steps:
       - name: Download package artifact
@@ -250,78 +250,16 @@ jobs:
         with:
           name: ${{ needs.build.outputs.plugin_slug }}-${{ needs.build.outputs.plugin_version }}
 
-      - name: Upload to Google Drive
+      - name: Upload to Google Drive with sharing
         id: upload
-        uses: adityak74/google-drive-upload-git-action@v0.3
+        uses: code-atlantic/sync-release-to-google-drive@v0.1.0
         with:
           filename: ${{ needs.build.outputs.package_name }}
           credentials: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS_B64 }}
-          folderId: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          folder_id: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
           overwrite: "true"
-
-      - name: Set file sharing and get direct link
-        id: set_url
-        run: |
-          FILE_ID="${{ steps.upload.outputs.fileId }}"
-
-          if [ -z "$FILE_ID" ]; then
-            echo "❌ ERROR: No file ID returned from upload"
-            exit 1
-          fi
-
-          echo "📎 File ID: ${FILE_ID}"
-
-          # Get OAuth token from service account
-          CREDENTIALS=$(echo "${{ secrets.GOOGLE_DRIVE_CREDENTIALS_B64 }}" | base64 -d)
-          CLIENT_EMAIL=$(echo "$CREDENTIALS" | jq -r '.client_email')
-          PRIVATE_KEY=$(echo "$CREDENTIALS" | jq -r '.private_key')
-
-          # Create JWT for OAuth
-          NOW=$(date +%s)
-          EXP=$((NOW + 3600))
-
-          HEADER='{"alg":"RS256","typ":"JWT"}'
-          CLAIM=$(jq -nc \
-            --arg iss "$CLIENT_EMAIL" \
-            --arg scope "https://www.googleapis.com/auth/drive" \
-            --arg aud "https://oauth2.googleapis.com/token" \
-            --arg exp "$EXP" \
-            --arg iat "$NOW" \
-            '{"iss":$iss,"scope":$scope,"aud":$aud,"exp":($exp|tonumber),"iat":($iat|tonumber)}')
-
-          # Sign JWT
-          JWT_HEADER=$(echo -n "$HEADER" | base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n')
-          JWT_CLAIM=$(echo -n "$CLAIM" | base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n')
-          JWT_SIGNATURE=$(echo -n "${JWT_HEADER}.${JWT_CLAIM}" | \
-            openssl dgst -binary -sha256 -sign <(echo "$PRIVATE_KEY") | \
-            base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n')
-          JWT="${JWT_HEADER}.${JWT_CLAIM}.${JWT_SIGNATURE}"
-
-          # Get access token
-          TOKEN_RESPONSE=$(curl -s -X POST https://oauth2.googleapis.com/token \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${JWT}")
-          ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token')
-
-          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" == "null" ]; then
-            echo "❌ Failed to get access token"
-            echo "$TOKEN_RESPONSE"
-            exit 1
-          fi
-
-          # Set file-specific sharing: anyone with link can view
-          echo "🔓 Setting file sharing permissions..."
-          PERM_RESPONSE=$(curl -s -X POST \
-            "https://www.googleapis.com/drive/v3/files/${FILE_ID}/permissions" \
-            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d '{"role":"reader","type":"anyone"}')
-
-          # Construct direct file link
-          FILE_URL="https://drive.google.com/file/d/${FILE_ID}/view"
-
-          echo "drive_url=${FILE_URL}" >> $GITHUB_OUTPUT
-          echo "✅ Direct file URL: ${FILE_URL}"
+          sharing: anyone
+          sharing_role: reader
 
   # ============================================================================
   # SLACK NOTIFICATION
