@@ -5,7 +5,15 @@
   "private": true,
   "scripts": {
     "build": "echo 'No build process needed for test plugin'",
-    "build:production": "echo 'No production build needed for test plugin'"
+    "build:production": "echo 'No production build needed for test plugin'",
+    "rapid-release": "node bin/rapid-release.js",
+    "rapid-release:patch": "node bin/rapid-release.js patch",
+    "rapid-release:minor": "node bin/rapid-release.js minor", 
+    "rapid-release:major": "node bin/rapid-release.js major",
+    "prepare-release": "node bin/prepare-release.js",
+    "prepare-release:patch": "node bin/prepare-release.js",
+    "prepare-release:minor": "node bin/prepare-release.js --minor",
+    "prepare-release:major": "node bin/prepare-release.js --major"
   },
   "keywords": [
     "wordpress",

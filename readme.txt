@@ -4,7 +4,7 @@ Tags: testing, development, releases
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.24-beta.2
+Stable tag: 1.0.25
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,17 +22,6 @@ This plugin exists solely for testing the EDD Release Manager's webhook integrat
 2. Plugin updates automatically when GitHub releases are published
 
 == Changelog ==
-
-= 1.0.24 =
-### Changed
-- **Google Drive Upload**: Updated to use the latest `code-atlantic/sync-release-to-google-drive@v1` action.
-
-### Fixed
-- **Google Drive Upload**: Fixed google drive action to set permissions for the file and generate a direct link to the file.
-
-= 1.0.23 =
-### Changed
-- **Google Drive Upload**: Updated to use the new `code-atlantic/sync-release-to-google-drive@v0.1.0` action.
 
 = 1.0.22 =
 ### Changed
