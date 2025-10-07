@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## v1.0.22 - 2025-10-07
+
+### Changed
+- **Google Drive Upload**: Updated google drive action to set permissions for the file and generate a direct link to the file.
+
+
 ## v1.1.0-beta.3 - 2025-10-04
 
 ### Added
