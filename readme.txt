@@ -4,7 +4,7 @@ Tags: testing, development, releases
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.31
+Stable tag: 1.0.32
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,9 @@ This plugin exists solely for testing the EDD Release Manager's webhook integrat
 2. Plugin updates automatically when GitHub releases are published
 
 == Changelog ==
+
+= 1.0.32 =
+🧪 Test release for workflow validation
 
 = 1.0.31 =
 🧪 Test release for workflow validation
