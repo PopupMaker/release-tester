@@ -266,7 +266,7 @@ jobs:
 
       - name: Upload to Google Drive with sharing
         id: upload
-        uses: code-atlantic/sync-release-to-google-drive@v0.3.0
+        uses: code-atlantic/sync-release-to-google-drive@v0.3.1
         with:
           filename: ${{ needs.build.outputs.package_name }}
           credentials: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS_B64 }}
