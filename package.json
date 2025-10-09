@@ -1,6 +1,6 @@
 {
   "name": "popup-maker-release-tester",
-  "version": "1.0.26",
+  "version": "1.1.0-beta.5",
   "description": "🧪 Minimal test plugin for validating Popup Maker release workflows",
   "private": true,
   "scripts": {
@@ -13,7 +13,10 @@
     "prepare-release": "node bin/prepare-release.js",
     "prepare-release:patch": "node bin/prepare-release.js",
     "prepare-release:minor": "node bin/prepare-release.js --minor",
-    "prepare-release:major": "node bin/prepare-release.js --major"
+    "prepare-release:major": "node bin/prepare-release.js --major",
+    "prepare-release:beta": "node bin/prepare-release.js --beta",
+    "prepare-release:beta:minor": "node bin/prepare-release.js --beta --minor",
+    "prepare-release:beta:major": "node bin/prepare-release.js --beta --major"
   },
   "keywords": [
     "wordpress",

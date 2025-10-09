@@ -9,8 +9,9 @@ const fs = require('fs');
 const path = require('path');
 
 const version = process.argv[2];
-if (!version || !/^\d+\.\d+\.\d+$/.test(version)) {
-	console.error('❌ Invalid version. Usage: node bin/update-versions.js 1.0.20');
+// Support both standard (1.0.0) and beta (1.0.0-beta.1) versions.
+if (!version || !/^\d+\.\d+\.\d+(-beta\.\d+)?$/.test(version)) {
+	console.error('❌ Invalid version. Usage: node bin/update-versions.js 1.0.20 or 1.0.20-beta.1');
 	process.exit(1);
 }
 
@@ -18,15 +19,21 @@ const files = [
 	{
 		path: 'popup-maker-release-tester.php',
 		patterns: [
-			{ regex: /Version:\s*[\d.]+/, replacement: `Version: ${version}` },
-			{ regex: /define\(\s*'PMRT_VERSION',\s*'[\d.]+'\s*\);/, replacement: `define( 'PMRT_VERSION', '${version}' );` },
-			{ regex: /'version'\s*=>\s*'[\d.]+'/, replacement: `'version' => '${version}'` }
+			{ regex: /Version:\s*[\d.-]+/, replacement: `Version: ${version}` },
+			{ regex: /define\(\s*'PMRT_VERSION',\s*'[\d.-]+'\s*\);/, replacement: `define( 'PMRT_VERSION', '${version}' );` },
+			{ regex: /'version'\s*=>\s*'[\d.-]+'/, replacement: `'version' => '${version}'` }
 		]
 	},
 	{
 		path: 'readme.txt',
 		patterns: [
-			{ regex: /Stable tag:\s*[\d.]+/, replacement: `Stable tag: ${version}` }
+			{ regex: /Stable tag:\s*[\d.-]+/, replacement: `Stable tag: ${version}` }
+		]
+	},
+	{
+		path: 'package.json',
+		patterns: [
+			{ regex: /"version":\s*"[\d.-]+"/, replacement: `"version": "${version}"` }
 		]
 	}
 ];
