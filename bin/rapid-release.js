@@ -96,7 +96,7 @@ function getCurrentVersion() {
 	}
 	
 	const content = fs.readFileSync(pluginFile, 'utf8');
-	const versionMatch = content.match(/Version:\s*(\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)[\d]*)?)/);
+	const versionMatch = content.match(/Version:\s*(\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.?\d+)?)/);
 	
 	if (!versionMatch) {
 		error('Could not find version in plugin file');
@@ -106,11 +106,38 @@ function getCurrentVersion() {
 	return versionMatch[1];
 }
 
+// Get the last stable version from git tags
+function getLastStableVersion() {
+	try {
+		// Get all tags, filter for stable versions (no pre-release suffixes)
+		const tags = exec('git tag -l', { silent: true }).trim().split('\n');
+		const stableTags = tags
+			.filter(tag => /^v?\d+\.\d+\.\d+$/.test(tag))
+			.map(tag => tag.replace(/^v/, ''))
+			.sort((a, b) => {
+				const aParts = a.split('.').map(Number);
+				const bParts = b.split('.').map(Number);
+				// Compare major, minor, patch
+				for (let i = 0; i < 3; i++) {
+					if (aParts[i] !== bParts[i]) {
+						return bParts[i] - aParts[i]; // Descending order
+					}
+				}
+				return 0;
+			});
+		
+		return stableTags[0] || '0.0.0';
+	} catch (e) {
+		// Fallback to current version if git fails
+		return getCurrentVersion().replace(/-(?:alpha|beta|rc).*$/, '');
+	}
+}
+
 // Calculate next version
 function getNextVersion(current, type = 'patch', customVersion = null) {
 	if (customVersion) {
 		// Validate custom version format
-		if (!/^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\d*)?$/.test(customVersion)) {
+		if (!/^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.?\d+)?$/.test(customVersion)) {
 			error(`Invalid custom version format: ${customVersion}. Use semantic versioning (e.g., 1.0.26)`);
 			process.exit(1);
 		}
@@ -374,9 +401,11 @@ function main() {
 	
 	// Get versions
 	const currentVersion = getCurrentVersion();
-	const targetVersion = getNextVersion(currentVersion, versionType, customVersion);
+	const lastStableVersion = getLastStableVersion();
+	const targetVersion = getNextVersion(lastStableVersion, versionType, customVersion);
 	
 	log(`Current version: ${currentVersion}`, 'yellow');
+	log(`Last stable:     ${lastStableVersion}`, 'cyan');
 	log(`Target version:  ${targetVersion}`, 'green');
 	console.log('');
 	
