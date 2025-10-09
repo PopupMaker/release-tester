@@ -340,15 +340,8 @@ function mergeAndTag(version) {
 	// Switch to master
 	exec('git checkout master');
 	
-	// Pull latest master
-	try {
-		exec('git pull origin master --rebase', { silent: true });
-	} catch (err) {
-		info('Could not pull from origin master (branch may not exist remotely)');
-	}
-	
-	// Merge develop into master
-	exec('git merge develop --no-ff -m "Merge develop for release v' + version + '"');
+	// Reset master to match develop (force sync for test plugin)
+	exec('git reset --hard develop');
 	
 	// Create tag
 	exec(`git tag -a v${version} -m "Release v${version}"`);
