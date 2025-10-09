@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## v1.1.0-beta.7 - 2025-10-09
+
+- Minor updates and improvements
+
+
 ## v1.0.37 - 2025-10-09
 
 ### Changed
