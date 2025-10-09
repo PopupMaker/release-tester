@@ -342,7 +342,7 @@ function mergeAndTag(version) {
 	
 	// Pull latest master
 	try {
-		exec('git pull origin master', { silent: true });
+		exec('git pull origin master --rebase', { silent: true });
 	} catch (err) {
 		info('Could not pull from origin master (branch may not exist remotely)');
 	}
