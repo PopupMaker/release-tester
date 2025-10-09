@@ -353,8 +353,8 @@ function mergeAndTag(version) {
 function pushAll(version) {
 	step('Pushing to remote...');
 	
-	// Push master
-	exec('git push origin master');
+	// Push master (force since we reset it)
+	exec('git push origin master --force');
 	
 	// Push tag
 	exec(`git push origin v${version}`);
